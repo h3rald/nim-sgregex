@@ -53,7 +53,7 @@ template srx_Replace(R: ptr srx_Context, str: cstring, rep: cstring): cstring =
 import strutils
 
 type 
-  InvalidRegexError = ref SystemError
+  InvalidRegexError = ref Exception
 
 proc newRegex(pattern, mods: string): ptr srx_Context =
   result = srx_Create(pattern, mods)
