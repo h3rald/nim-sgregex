@@ -12,14 +12,14 @@
 #  RX_ALLMODS = "mis"
 
 type 
-  srx_MemFunc = proc (a2: pointer; a3: pointer; a4: csize): pointer
+  srx_MemFunc = proc (a2: pointer; a3: pointer; a4: int): pointer
   srx_Context = pointer
 
 proc RX_STRLENGTHFUNC(str: string): int = 
   return str.len
 
 {.push importc.}
-proc srx_CreateExt(str: cstring; strsize: csize; mods: cstring; errnpos: ptr cint; memfn: srx_MemFunc; memctx: pointer): ptr srx_Context
+proc srx_CreateExt(str: cstring; strsize: int; mods: cstring; errnpos: ptr cint; memfn: srx_MemFunc; memctx: pointer): ptr srx_Context
 
 template srx_Create(str, mods: string): ptr srx_Context = 
   srx_CreateExt(str, RX_STRLENGTHFUNC(str), mods, nil, nil, nil)
@@ -28,18 +28,18 @@ proc srx_Destroy(R: ptr srx_Context): cint
 
 # proc srx_DumpToStdout(R: ptr srx_Context)
 
-proc srx_MatchExt(R: ptr srx_Context; str: cstring; size: csize; offset: csize): cint
+proc srx_MatchExt(R: ptr srx_Context; str: cstring; size: int; offset: int): cint
 
-template srx_Match(R: ptr srx_Context, str: cstring, off: csize): cint = 
+template srx_Match(R: ptr srx_Context, str: cstring, off: int): cint = 
   srx_MatchExt(R, str, RX_STRLENGTHFUNC(str), off)
 
 proc srx_GetCaptureCount(R: ptr srx_Context): cint
 
-proc srx_GetCaptured(R: ptr srx_Context; which: cint; pbeg: ptr csize; pend: ptr csize): cint
+proc srx_GetCaptured(R: ptr srx_Context; which: cint; pbeg: ptr int; pend: ptr int): cint
 
 #proc srx_GetCapturedPtrs(R: ptr srx_Context; which: cint; pbeg: cstringArray; pend: cstringArray): cint
 
-proc srx_ReplaceExt(R: ptr srx_Context; str: cstring; strsize: csize; rep: cstring; repsize: csize; outsize: ptr csize): cstring
+proc srx_ReplaceExt(R: ptr srx_Context; str: cstring; strsize: int; rep: cstring; repsize: int; outsize: ptr int): cstring
 
 template srx_Replace(R: ptr srx_Context, str: cstring, rep: cstring): cstring = 
   srx_ReplaceExt(R, str, RX_STRLENGTHFUNC(str), rep, RX_STRLENGTHFUNC(rep), nil)
