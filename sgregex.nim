@@ -62,7 +62,7 @@ proc newRegex(pattern, mods: string): ptr srx_Context =
 
 proc match*(str, pattern, mods: string): bool =
   let r = newRegex(pattern, mods)
-  result = srx_Match(r, str, 0) == 1
+  result = srx_Match(r, str, 0) == 1 
   discard srx_Destroy(r)
 
 proc match*(str, pattern: string): bool =
@@ -92,12 +92,70 @@ proc replace*(str, pattern, repl: string): string =
   return replace(str, pattern, repl, "")
 
 proc `=~`*(str, r: string): seq[string] =
-  let m = r.search("(s)?/(.+?)/((.+?)/)?([mis]{0,3})?")
-  # full match, s, reg, replace/, replace, flags
-  if m[1] == "s" and m[3] != "":
-    return @[replace(str, m[2], m[4], m[5])]
+  var sub = false
+  var flags = ""
+  var eflags = "mis"
+  var src = ""
+  var rpl = ""
+  var escape = false
+  var next = false
+  var i = 0
+  var start = 0
+  var finish = 0
+  var main = ""
+  if r[i] == 's':
+    i.inc()
+    sub = true
+  if r[i] != '/':
+    raise(InvalidRegexError(msg: "Regular expression string must start with / or s/"))
   else:
-    return search(str, m[2], m[5])
+    start = i
+    i = r.len-1
+  if eflags.contains(r[i]):
+    flags &= r[i]
+    eflags = eflags.replace($r[i], "")
+    i.dec()
+    if eflags.contains r[i]:
+      flags &= r[i]
+      eflags = eflags.replace($r[i], "")
+      i.dec()
+      if eflags == $r[i]:
+        flags &= r[i]
+        i.dec()
+  if r[i] != '/':
+    raise(InvalidRegexError(msg: "Regular expression string must end with /"))
+  else:
+    finish = i
+  main = r[start+1..finish-1]
+  for c in main:
+    if c == '\\':
+      escape = not escape
+      if next:
+        rpl &= c
+      else:
+        src &= c
+    elif c == '/':
+      if escape:
+        escape = false
+        if next:
+          rpl &= c
+        else:
+          src &= c
+      elif next:
+        raise(InvalidRegexError(msg: "Regular expeession contains additional unescaped '/' character"))
+      else: 
+        next = true
+    else:
+      if escape:
+        escape = false
+      if next:
+        rpl &= c
+      else:
+        src &= c
+  if next:
+    return @[replace(str, src, rpl, flags)]
+  else:
+    return search(str, src, flags)
 
 when isMainModule:
 
