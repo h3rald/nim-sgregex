@@ -91,6 +91,30 @@ proc replace*(str, pattern, repl, mods: string): string =
 proc replace*(str, pattern, repl: string): string =
   return replace(str, pattern, repl, "")
 
+proc replaceFn*(str, pattern, mods: string, fn: proc (captures: seq[string]): string): string =
+  let r = newRegex(pattern, mods)
+  result = ""
+  var offset = 0
+  var mainFirst = 0
+  var mainLast = 0
+  while srx_Match(r, str, offset) == 1 and offset <= str.len:
+    echo offset
+    let count = srx_GetCaptureCount(r)
+    var captures = newSeq[string](count)
+    discard srx_GetCaptured(r, 0, addr mainFirst, addr mainLast)
+    captures[0] = str.substr(mainFirst, mainLast-1)
+    for i in 1..count-1:
+      var first = 0
+      var last = 0
+      discard srx_GetCaptured(r, i, addr first, addr last)
+      captures[i] = str.substr(first, last-1)
+    result &= str.substr(offset, mainFirst-1)
+    let repl = fn(captures)
+    result &= repl
+    offset = mainFirst-1 + repl.len-1
+  result &= str.substr(mainLast, str.len-1)
+  discard srx_Destroy(r)
+
 proc `=~`*(str, r: string): seq[string] =
   var sub = false
   var flags = ""
@@ -174,6 +198,11 @@ when isMainModule:
   proc toperator(str, pattern: string) =
     echo str, " =~ ", pattern, " -> ", str =~ pattern
 
+  proc treplaceFn(str, pattern: string) =
+    proc fn(captures: seq[string]): string =
+      return "@>>" & captures[1] & "<<@"
+    echo str, " =~ ", "s/", pattern, "/<fn>/", " -> |", str.replaceFn(pattern, "", fn), "|"
+
   "HELLO".tmatch("^H(.*)O$")
   "HELLO".tmatch("^H(.*)S$")
   "HELLO".tsearch("^H(E)(.*)O$")
@@ -184,3 +213,4 @@ when isMainModule:
   "Hello".tsearch("HELLO", "i")
   "Hello\nWorld!".tsearch("HELLO.WORLD", "mis")
   "Testing".toperator("s/test/eat/i")
+  "test {{a}} test1 {{b}} test2 {{aaaa}} !!!!".treplaceFn("\\{\\{([^}]+)\\}\\}")
