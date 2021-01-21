@@ -98,7 +98,6 @@ proc replaceFn*(str, pattern, mods: string, fn: proc (captures: seq[string]): st
   var mainFirst = 0
   var mainLast = 0
   while srx_Match(r, str, offset) == 1 and offset <= str.len:
-    echo offset
     let count = srx_GetCaptureCount(r)
     var captures = newSeq[string](count)
     discard srx_GetCaptured(r, 0, addr mainFirst, addr mainLast)
@@ -111,7 +110,7 @@ proc replaceFn*(str, pattern, mods: string, fn: proc (captures: seq[string]): st
     result &= str.substr(offset, mainFirst-1)
     let repl = fn(captures)
     result &= repl
-    offset = mainFirst-1 + repl.len-1
+    offset = mainLast
   result &= str.substr(mainLast, str.len-1)
   discard srx_Destroy(r)
 
