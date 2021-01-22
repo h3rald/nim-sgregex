@@ -83,6 +83,26 @@ proc search*(str, pattern, mods: string): seq[string] =
 proc search*(str, pattern: string): seq[string] =
   return search(str, pattern, "")
 
+proc searchAll*(str, pattern, mods: string): seq[seq[string]] =
+  let r = newRegex(pattern, mods)
+  var offset = 0
+  var mainFirst = 0
+  var mainLast = 0
+  result = newSeq[seq[string]](0)
+  while srx_Match(r, str, offset) == 1 and offset <= str.len:
+    let count = srx_GetCaptureCount(r)
+    var captures = newSeq[string](count)
+    discard srx_GetCaptured(r, 0, addr mainFirst, addr mainLast)
+    captures[0] = str.substr(mainFirst, mainLast-1)
+    for i in 1..count-1:
+      var first = 0
+      var last = 0
+      discard srx_GetCaptured(r, i, addr first, addr last)
+      captures[i] = str.substr(first, last-1)
+    result.add captures
+    offset = mainLast
+  discard srx_Destroy(r)
+
 proc replace*(str, pattern, repl, mods: string): string =
   var r = newRegex(pattern, mods)
   result = $srx_Replace(r, str, repl)
